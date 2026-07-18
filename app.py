@@ -114,6 +114,7 @@ def dashboard():
         JOIN candidates c ON c.candidate_id = a.candidate_id
         JOIN positions p ON p.position_id = a.position_id
         WHERE a.next_interview_date IS NOT NULL
+          AND datetime(a.next_interview_date) >= datetime('now', 'localtime')
         ORDER BY a.next_interview_date
         LIMIT 8
         """
@@ -277,6 +278,9 @@ def application_new(candidate_id):
             errors.append("応募日の形式が正しくありません。")
         if not valid_datetime(request.form.get("next_interview_date", "")):
             errors.append("次回面接日時の形式が正しくありません。")
+        next_interview_date = request.form.get("next_interview_date") or None
+        if request.form.get("current_stage_id") in ("4", "5", "6"):
+            next_interview_date = None
         if not errors:
             try:
                 get_db().execute(
@@ -284,7 +288,7 @@ def application_new(candidate_id):
                        (candidate_id, position_id, application_date, recruitment_year,
                         current_stage_id, next_interview_date) VALUES (?, ?, ?, ?, ?, ?)""",
                     (candidate_id, request.form["position_id"], request.form["application_date"], year,
-                     request.form["current_stage_id"], request.form.get("next_interview_date") or None)
+                     request.form["current_stage_id"], next_interview_date)
                 )
                 get_db().commit()
                 flash("応募を登録しました。", "success")
@@ -317,13 +321,16 @@ def application_edit(application_id):
             errors.append("応募日の形式が正しくありません。")
         if not valid_datetime(request.form.get("next_interview_date", "")):
             errors.append("次回面接日時の形式が正しくありません。")
+        next_interview_date = request.form.get("next_interview_date") or None
+        if request.form.get("current_stage_id") in ("4", "5", "6"):
+            next_interview_date = None
         if not errors:
             try:
                 get_db().execute(
                     """UPDATE applications SET position_id=?, application_date=?, recruitment_year=?,
                        current_stage_id=?, next_interview_date=? WHERE application_id=?""",
                     (request.form["position_id"], request.form["application_date"], year,
-                     request.form["current_stage_id"], request.form.get("next_interview_date") or None,
+                     request.form["current_stage_id"], next_interview_date,
                      application_id)
                 )
                 get_db().commit()
@@ -363,6 +370,9 @@ def interview_new(application_id):
            JOIN candidates c ON c.candidate_id=a.candidate_id
            JOIN positions p ON p.position_id=a.position_id WHERE a.application_id=?""", (application_id,)
     )
+    if application["current_stage_id"] in (4, 5, 6):
+        flash("選考が終了している応募には面接を登録できません。", "error")
+        return redirect(url_for("candidate_detail", candidate_id=application["candidate_id"]))
     options = form_options()
     if request.method == "POST":
         errors = required(request.form, {"stage_id": "面接ステージ", "recruiter_id": "担当者",
