@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}ダッシュボード | 採用選考管理{% endblock %}
+{% block content %}
+<div class="page-head"><div><p class="eyebrow">OVERVIEW</p><h1>採用ダッシュボード</h1><p>候補者と選考状況をひと目で確認できます。</p></div></div>
+<section class="stats">
+  <article><span>候補者</span><strong>{{ candidate_count }}</strong><small>登録人数</small></article>
+  <article><span>応募</span><strong>{{ summary.total or 0 }}</strong><small>全採用年度</small></article>
+  <article><span>選考中</span><strong>{{ summary.active or 0 }}</strong><small>書類～三次面接</small></article>
+  <article><span>内定</span><strong>{{ summary.offers or 0 }}</strong><small>現在の内定数</small></article>
+</section>
+<div class="grid two">
+  <section class="panel"><div class="panel-head"><h2>ステージ別応募数</h2></div>
+    <div class="stage-list">{% for row in stage_counts %}<div><span>{{ row.stage_name }}</span><b>{{ row.count }}</b></div>{% endfor %}</div>
+  </section>
+  <section class="panel"><div class="panel-head"><h2>今後の面接予定</h2></div>
+    {% if upcoming %}<div class="list">{% for row in upcoming %}
+      <a href="{{ url_for('application_edit', application_id=row.application_id) }}"><div><b>{{ row.name }}</b><span>{{ row.position_name }}</span></div><time>{{ row.next_interview_date|replace('T', ' ') }}</time></a>
+    {% endfor %}</div>{% else %}<p class="empty">面接予定はありません。</p>{% endif %}
+  </section>
+</div>
+{% endblock %}
