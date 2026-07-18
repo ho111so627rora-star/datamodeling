@@ -4,8 +4,10 @@ from flask import Flask, abort, flash, g, redirect, render_template, request, se
 
 
 app = Flask(__name__)
-key_db = sqlite3.connect(":memory:")
-secret_key = key_db.execute("SELECT hex(randomblob(32))").fetchone()[0]
+key_db = sqlite3.connect("recruitment.db")
+secret_key = key_db.execute(
+    "SELECT setting_value FROM app_settings WHERE setting_key = 'secret_key'"
+).fetchone()[0]
 key_db.close()
 app.config.update(SECRET_KEY=secret_key, DATABASE="recruitment.db")
 
