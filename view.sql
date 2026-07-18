@@ -11,7 +11,7 @@ SELECT
     a.current_stage_id,
     s.stage_name AS current_stage,
     CASE
-        WHEN a.current_stage_id BETWEEN 0 AND 2 THEN ns.stage_name
+        WHEN a.current_stage_id BETWEEN 0 AND 3 THEN ns.stage_name
         ELSE NULL
     END AS next_stage,
     a.next_interview_date
