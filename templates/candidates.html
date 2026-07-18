@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}候補者・応募一覧{% endblock %}
+{% block content %}
+<div class="page-head"><div><p class="eyebrow">APPLICATIONS</p><h1>候補者・応募一覧</h1></div><a class="button" href="{{ url_for('candidate_new') }}">＋ 候補者を登録</a></div>
+<form class="filters panel" method="get">
+  <label>キーワード<input name="keyword" value="{{ keyword }}" placeholder="氏名・大学・職種"></label>
+  <label>ステージ<select name="stage_id"><option value="">すべて</option>{% for s in stages %}<option value="{{ s.stage_id }}" {% if stage_id == s.stage_id|string %}selected{% endif %}>{{ s.stage_name }}</option>{% endfor %}</select></label>
+  <label>採用年度<input type="number" name="recruitment_year" value="{{ recruitment_year }}" placeholder="2026"></label>
+  <button class="button" type="submit">検索</button><a class="text-link" href="{{ url_for('candidates') }}">条件をクリア</a>
+</form>
+<section class="panel table-wrap">
+  <table><thead><tr><th>候補者</th><th>大学</th><th>職種</th><th>採用年度</th><th>ステージ</th><th>次回面接</th><th></th></tr></thead>
+  <tbody>{% for row in rows %}<tr><td><a class="name-link" href="{{ url_for('candidate_detail', candidate_id=row.candidate_id) }}">{{ row.name }}</a></td><td>{{ row.university or '-' }}</td><td>{{ row.position_name }}</td><td>{{ row.recruitment_year }}</td><td><span class="badge">{{ row.stage_name }}</span></td><td>{{ (row.next_interview_date or '-')|replace('T', ' ') }}</td><td><a class="text-link" href="{{ url_for('candidate_detail', candidate_id=row.candidate_id) }}">詳細 →</a></td></tr>{% else %}<tr><td colspan="7" class="empty">条件に一致する応募はありません。</td></tr>{% endfor %}</tbody></table>
+</section>
+{% endblock %}
