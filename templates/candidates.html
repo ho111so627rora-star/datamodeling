@@ -10,6 +10,6 @@
 </form>
 <section class="panel table-wrap">
   <table><thead><tr><th>候補者</th><th>大学</th><th>職種</th><th>採用年度</th><th>ステージ</th><th>次回面接</th><th></th></tr></thead>
-  <tbody>{% for row in rows %}<tr><td><a class="name-link" href="{{ url_for('candidate_detail', candidate_id=row.candidate_id) }}">{{ row.name }}</a></td><td>{{ row.university or '-' }}</td><td>{{ row.position_name }}</td><td>{{ row.recruitment_year }}</td><td><span class="badge">{{ row.stage_name }}</span></td><td>{{ (row.next_interview_date or '-')|replace('T', ' ') }}</td><td><a class="text-link" href="{{ url_for('candidate_detail', candidate_id=row.candidate_id) }}">詳細 →</a></td></tr>{% else %}<tr><td colspan="7" class="empty">条件に一致する応募はありません。</td></tr>{% endfor %}</tbody></table>
+  <tbody>{% for row in rows %}<tr><td><a class="name-link" href="{{ url_for('candidate_detail', candidate_id=row.candidate_id) }}">{{ row.name }}</a></td><td>{{ row.university or '-' }}</td><td>{{ row.position_name }}</td><td>{{ row.recruitment_year }}</td><td><span class="badge">{{ row.current_stage }}</span></td><td>{{ (row.next_interview_date or '-')|replace('T', ' ') }}</td><td><a class="text-link" href="{{ url_for('candidate_detail', candidate_id=row.candidate_id) }}">詳細 →</a></td></tr>{% else %}<tr><td colspan="7" class="empty">条件に一致する応募はありません。</td></tr>{% endfor %}</tbody></table>
 </section>
 {% endblock %}
