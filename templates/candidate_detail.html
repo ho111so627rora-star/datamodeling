@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ candidate.name }} | 候補者詳細{% endblock %}
+{% block content %}
+<div class="page-head"><div><p class="eyebrow">CANDIDATE #{{ candidate.candidate_id }}</p><h1>{{ candidate.name }}</h1><p>{{ candidate.email }}{% if candidate.phone %} ・ {{ candidate.phone }}{% endif %}</p></div><div class="actions"><a class="button secondary" href="{{ url_for('candidate_edit', candidate_id=candidate.candidate_id) }}">基本情報を編集</a><a class="button" href="{{ url_for('application_new', candidate_id=candidate.candidate_id) }}">＋ 応募を登録</a></div></div>
+<div class="grid two detail-top">
+  <section class="panel"><h2>基本情報</h2><dl><dt>大学・学部</dt><dd>{{ candidate.university or '-' }} {{ candidate.faculty or '' }}</dd><dt>卒業年度</dt><dd>{{ candidate.graduation_year or '-' }}</dd><dt>稼働可能時間</dt><dd>{% if candidate.available_hours_per_week is not none %}週{{ candidate.available_hours_per_week }}時間{% else %}-{% endif %}</dd></dl></section>
+  <section class="panel"><h2>保有スキル</h2>{% if skills %}<div class="chips">{% for s in skills %}<span>{{ s.skill_name }} <b>Lv.{{ s.skill_level }}</b></span>{% endfor %}</div>{% else %}<p class="empty">登録なし</p>{% endif %}</section>
+</div>
+<section class="panel"><div class="panel-head"><h2>応募履歴</h2></div>
+  <div class="cards">{% for a in applications %}<article class="application-card"><div><span class="badge">{{ a.stage_name }}</span><h3>{{ a.position_name }}</h3><p>{{ a.recruitment_year }}年度 ・ 応募日 {{ a.application_date }}</p><p>次回面接：{{ (a.next_interview_date or '未定')|replace('T',' ') }}</p></div><div class="card-actions"><a href="{{ url_for('application_edit', application_id=a.application_id) }}">編集</a><a href="{{ url_for('interview_new', application_id=a.application_id) }}">面接・評価を登録</a><form method="post" action="{{ url_for('application_delete', application_id=a.application_id) }}" onsubmit="return confirm('この応募と関連する面接・評価を削除しますか？')"><button class="danger-link">削除</button></form></div></article>{% else %}<p class="empty">応募履歴はありません。</p>{% endfor %}</div>
+</section>
+<section class="panel"><h2>面接・評価履歴</h2>
+  <div class="timeline">{% for i in interviews %}<article><div class="dot"></div><div><div class="meta">{{ i.interview_date|replace('T',' ') }} ・ {{ i.recruitment_year }}年度</div><h3>{{ i.stage_name }} <span class="result">{{ i.result }}</span></h3><p>担当：{{ i.recruiter_name }}</p>{% if i.overall_score is not none %}<p class="scores">技術 {{ i.technical_score }} / 対話 {{ i.communication_score }} / 総合 {{ i.overall_score }}</p><blockquote>{{ i.comment or 'コメントなし' }}</blockquote>{% endif %}</div></article>{% else %}<p class="empty">面接履歴はありません。</p>{% endfor %}</div>
+</section>
+{% endblock %}
