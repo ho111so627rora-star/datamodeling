@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{% if application %}応募編集{% else %}応募登録{% endif %}{% endblock %}
+{% block content %}<div class="narrow"><div class="page-head"><div><p class="eyebrow">APPLICATION</p><h1>{% if application %}応募情報を編集{% else %}{{ candidate.name }}さんの応募を登録{% endif %}</h1></div></div>
+<form class="panel form" method="post"><div class="form-grid">
+  <label>職種 <em>必須</em><select required name="position_id"><option value="">選択してください</option>{% for p in options.positions %}{% set selected = request.form.get('position_id', application.position_id if application else '') %}<option value="{{ p.position_id }}" {% if selected|string == p.position_id|string %}selected{% endif %}>{{ p.position_name }}（{{ p.employment_type }}）</option>{% endfor %}</select></label>
+  <label>応募日 <em>必須</em><input required type="date" name="application_date" value="{{ request.form.get('application_date', application.application_date if application else today) }}"></label>
+  <label>採用年度 <em>必須</em><input required type="number" min="2000" max="2100" name="recruitment_year" value="{{ request.form.get('recruitment_year', application.recruitment_year if application else today[:4]) }}"></label>
+  <label>現在ステージ <em>必須</em><select required name="current_stage_id">{% for s in options.stages %}{% set selected = request.form.get('current_stage_id', application.current_stage_id if application else 0) %}<option value="{{ s.stage_id }}" {% if selected|string == s.stage_id|string %}selected{% endif %}>{{ s.stage_name }}</option>{% endfor %}</select></label>
+  <label class="wide">次回面接日時<input type="datetime-local" name="next_interview_date" value="{{ request.form.get('next_interview_date', (application.next_interview_date or '') if application else '') }}"></label>
+  </div><p class="hint">次回ステージは現在ステージから自動的に決まるため、入力する必要はありません。</p><div class="form-actions"><a href="{{ url_for('candidate_detail', candidate_id=candidate.candidate_id) }}">キャンセル</a><button class="button" type="submit">保存する</button></div></form></div>{% endblock %}
