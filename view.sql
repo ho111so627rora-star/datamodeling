@@ -1,9 +1,14 @@
+DROP VIEW IF EXISTS candidate_status;
+
 CREATE VIEW candidate_status AS
 SELECT
+    a.application_id,
     c.candidate_id,
     c.name,
+    c.university,
     p.position_name,
     a.recruitment_year,
+    a.current_stage_id,
     s.stage_name AS current_stage,
     CASE
         WHEN a.current_stage_id BETWEEN 0 AND 2 THEN ns.stage_name
