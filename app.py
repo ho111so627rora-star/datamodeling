@@ -1,10 +1,13 @@
 import sqlite3
 
-from flask import Flask, abort, flash, g, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
 
 
 app = Flask(__name__)
-app.config.update(SECRET_KEY="development-key-change-on-server", DATABASE="recruitment.db")
+key_db = sqlite3.connect(":memory:")
+secret_key = key_db.execute("SELECT hex(randomblob(32))").fetchone()[0]
+key_db.close()
+app.config.update(SECRET_KEY=secret_key, DATABASE="recruitment.db")
 
 
 def get_db():
@@ -44,6 +47,40 @@ def required(values, labels):
         if not str(values.get(key, "")).strip():
             errors.append(f"{label}は必須です。")
     return errors
+
+
+def valid_email(value):
+    if any(character.isspace() for character in value) or value.count("@") != 1:
+        return False
+    local, domain = value.split("@")
+    return bool(local and "." in domain and not domain.startswith(".") and not domain.endswith("."))
+
+
+def valid_date(value):
+    if not value:
+        return False
+    return get_db().execute("SELECT date(?) = ?", (value, value)).fetchone()[0] == 1
+
+
+def valid_datetime(value):
+    if not value:
+        return True
+    return get_db().execute("SELECT datetime(?) IS NOT NULL", (value,)).fetchone()[0] == 1
+
+
+@app.before_request
+def csrf_protection():
+    if "csrf_token" not in session:
+        session["csrf_token"] = get_db().execute(
+            "SELECT lower(hex(randomblob(32)))"
+        ).fetchone()[0]
+    if request.method == "POST" and request.form.get("csrf_token") != session["csrf_token"]:
+        abort(400)
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": session.get("csrf_token", "")}
 
 
 @app.route("/")
@@ -149,6 +186,9 @@ def candidate_detail(candidate_id):
 def candidate_new():
     if request.method == "POST":
         errors = required(request.form, {"name": "氏名", "email": "メールアドレス"})
+        email = request.form.get("email", "").strip()
+        if email and not valid_email(email):
+            errors.append("メールアドレスの形式が正しくありません。")
         graduation_year = request.form.get("graduation_year", "").strip()
         hours = request.form.get("available_hours_per_week", "").strip()
         try:
@@ -164,7 +204,7 @@ def candidate_new():
                     """INSERT INTO candidates
                        (name, email, phone, university, faculty, graduation_year, available_hours_per_week)
                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (request.form["name"].strip(), request.form["email"].strip(),
+                    (request.form["name"].strip(), email,
                      request.form.get("phone", "").strip() or None,
                      request.form.get("university", "").strip() or None,
                      request.form.get("faculty", "").strip() or None,
@@ -186,9 +226,14 @@ def candidate_edit(candidate_id):
     candidate = query_one("SELECT * FROM candidates WHERE candidate_id = ?", (candidate_id,))
     if request.method == "POST":
         errors = required(request.form, {"name": "氏名", "email": "メールアドレス"})
+        email = request.form.get("email", "").strip()
+        if email and not valid_email(email):
+            errors.append("メールアドレスの形式が正しくありません。")
         try:
             graduation_year = int(request.form["graduation_year"]) if request.form.get("graduation_year") else None
             hours = int(request.form["available_hours_per_week"]) if request.form.get("available_hours_per_week") else None
+            if hours is not None and not 0 <= hours <= 168:
+                errors.append("稼働可能時間は0～168で入力してください。")
         except ValueError:
             graduation_year, hours = None, None
             errors.append("卒業年度と稼働可能時間は整数で入力してください。")
@@ -197,7 +242,7 @@ def candidate_edit(candidate_id):
                 get_db().execute(
                     """UPDATE candidates SET name=?, email=?, phone=?, university=?, faculty=?,
                        graduation_year=?, available_hours_per_week=? WHERE candidate_id=?""",
-                    (request.form["name"].strip(), request.form["email"].strip(),
+                    (request.form["name"].strip(), email,
                      request.form.get("phone") or None, request.form.get("university") or None,
                      request.form.get("faculty") or None, graduation_year, hours, candidate_id)
                 )
@@ -226,6 +271,10 @@ def application_new(candidate_id):
         except ValueError:
             year = None
             errors.append("採用年度は整数で入力してください。")
+        if request.form.get("application_date") and not valid_date(request.form["application_date"]):
+            errors.append("応募日の形式が正しくありません。")
+        if not valid_datetime(request.form.get("next_interview_date", "")):
+            errors.append("次回面接日時の形式が正しくありません。")
         if not errors:
             try:
                 get_db().execute(
@@ -257,9 +306,15 @@ def application_edit(application_id):
                                          "recruitment_year": "採用年度", "current_stage_id": "選考ステージ"})
         try:
             year = int(request.form.get("recruitment_year", ""))
+            if not 2000 <= year <= 2100:
+                errors.append("採用年度は2000～2100で入力してください。")
         except ValueError:
             year = None
             errors.append("採用年度は整数で入力してください。")
+        if request.form.get("application_date") and not valid_date(request.form["application_date"]):
+            errors.append("応募日の形式が正しくありません。")
+        if not valid_datetime(request.form.get("next_interview_date", "")):
+            errors.append("次回面接日時の形式が正しくありません。")
         if not errors:
             try:
                 get_db().execute(
@@ -292,8 +347,9 @@ def application_delete(application_id):
         db.execute("DELETE FROM applications WHERE application_id = ?", (application_id,))
         db.commit()
         flash("応募と関連する面接・評価を削除しました。", "success")
-    except sqlite3.Error:
+    except sqlite3.Error as error:
         db.rollback()
+        app.logger.exception("応募削除中にデータベースエラーが発生しました: %s", error)
         flash("削除に失敗しました。", "error")
     return redirect(url_for("candidate_detail", candidate_id=application["candidate_id"]))
 
@@ -309,6 +365,12 @@ def interview_new(application_id):
     if request.method == "POST":
         errors = required(request.form, {"stage_id": "面接ステージ", "recruiter_id": "担当者",
                                          "interview_date": "面接日時", "result": "結果"})
+        if request.form.get("interview_date") and not valid_datetime(request.form["interview_date"]):
+            errors.append("面接日時の形式が正しくありません。")
+        if request.form.get("result") not in ("通過", "不合格", "保留", "辞退"):
+            errors.append("結果の選択が正しくありません。")
+        if request.form.get("stage_id") not in ("1", "2", "3"):
+            errors.append("面接ステージの選択が正しくありません。")
         scores = {}
         for key, label in (("technical_score", "技術点"), ("communication_score", "対話点"),
                            ("overall_score", "総合点")):
@@ -335,11 +397,27 @@ def interview_new(application_id):
                     (cursor.lastrowid, scores["technical_score"], scores["communication_score"],
                      scores["overall_score"], request.form.get("comment", "").strip() or None)
                 )
+                if request.form["result"] == "通過":
+                    new_stage_id = int(request.form["stage_id"]) + 1
+                elif request.form["result"] == "不合格":
+                    new_stage_id = 5
+                elif request.form["result"] == "辞退":
+                    new_stage_id = 6
+                else:
+                    new_stage_id = int(request.form["stage_id"])
+                db.execute(
+                    """UPDATE applications
+                       SET current_stage_id = ?,
+                           next_interview_date = CASE WHEN ? = '保留' THEN next_interview_date ELSE NULL END
+                       WHERE application_id = ?""",
+                    (new_stage_id, request.form["result"], application_id)
+                )
                 db.commit()
-                flash("面接と評価を登録しました。", "success")
+                flash("面接と評価を登録し、選考ステージを更新しました。", "success")
                 return redirect(url_for("candidate_detail", candidate_id=application["candidate_id"]))
-            except sqlite3.Error:
+            except sqlite3.Error as error:
                 db.rollback()
+                app.logger.exception("面接・評価登録中にデータベースエラーが発生しました: %s", error)
                 errors.append("面接と評価の登録に失敗しました。")
         for error in errors:
             flash(error, "error")
@@ -351,10 +429,15 @@ def not_found(_error):
     return render_template("error.html", message="指定されたデータが見つかりません。"), 404
 
 
+@app.errorhandler(400)
+def bad_request(_error):
+    return render_template("error.html", message="不正なリクエストです。画面を戻って再度お試しください。"), 400
+
+
 @app.errorhandler(500)
 def server_error(_error):
     return render_template("error.html", message="サーバー内部でエラーが発生しました。"), 500
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
