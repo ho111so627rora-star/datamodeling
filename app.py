@@ -90,27 +90,24 @@ def candidates():
     stage_id = request.args.get("stage_id", "").strip()
     recruitment_year = request.args.get("recruitment_year", "").strip()
     sql = """
-        SELECT a.application_id, c.candidate_id, c.name, c.university,
-               p.position_name, a.recruitment_year, s.stage_name,
-               a.next_interview_date
-        FROM applications a
-        JOIN candidates c ON c.candidate_id = a.candidate_id
-        JOIN positions p ON p.position_id = a.position_id
-        JOIN selection_stages s ON s.stage_id = a.current_stage_id
+        SELECT application_id, candidate_id, name, university,
+               position_name, recruitment_year, current_stage,
+               next_stage, next_interview_date
+        FROM candidate_status
         WHERE 1 = 1
     """
     params = []
     if keyword:
-        sql += " AND (c.name LIKE ? OR c.university LIKE ? OR p.position_name LIKE ?)"
+        sql += " AND (name LIKE ? OR university LIKE ? OR position_name LIKE ?)"
         like = f"%{keyword}%"
         params.extend([like, like, like])
     if stage_id:
-        sql += " AND a.current_stage_id = ?"
+        sql += " AND current_stage_id = ?"
         params.append(stage_id)
     if recruitment_year:
-        sql += " AND a.recruitment_year = ?"
+        sql += " AND recruitment_year = ?"
         params.append(recruitment_year)
-    sql += " ORDER BY a.recruitment_year DESC, c.name"
+    sql += " ORDER BY recruitment_year DESC, name"
     rows = get_db().execute(sql, params).fetchall()
     stages = get_db().execute("SELECT * FROM selection_stages ORDER BY stage_id").fetchall()
     return render_template("candidates.html", rows=rows, stages=stages,
