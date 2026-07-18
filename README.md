@@ -27,36 +27,50 @@ python app.py
 
 ## WS Linux環境への配置
 
-公開用ディレクトリへ、隠しファイルの `.htaccess` を含むファイル一式を配置します。
-WS環境には授業指定のFlaskが導入済みなので、追加の `pip install` は行いません。
-
-データベースをまだ配置していない場合だけ、公開用ディレクトリで初期化します。
+リモートデスクトップでログインした場合も、通常のターミナルから次を実行して
+Anaconda用ターミナルを起動します。
 
 ```sh
+anaconda-shell
+```
+
+最初に、授業で用意されたスクリプトを通常のターミナルから実行します。
+
+```sh
+~aa124123/dm/setup.sh
+```
+
+これにより `~/public_html/dm_app` にサンプルが配置され、公開URLが表示されます。
+サンプルに含まれる `.htaccess` と `index.cgi` は変更も上書きも行いません。
+
+サンプルの `app.py`、`database.db`、`templates` を、このアプリの `app.py`、
+`recruitment.db`、`templates` に置き換え、`static` ディレクトリを追加します。
+DBをWS上で新規作成する場合だけ、公開ディレクトリで次を実行します。
+
+```sh
+cd ~/public_html/dm_app
 /usr/keio/Anaconda3-2025.12-2/bin/python init_db.py
 ```
 
-CGIへ実行権限を付与します。
+Webサーバーは専用アカウントで動作するため、全ディレクトリと `index.cgi`、`app.py`
+を755、その他のファイルを644に設定します。
 
 ```sh
-chmod 755 index.cgi
+chmod 755 ~/public_html ~/public_html/dm_app
+cd ~/public_html/dm_app
+chmod 755 index.cgi app.py templates static
+chmod 644 recruitment.db init_db.py kdai3.sql insert.sql view.sql
+chmod 644 templates/* static/*
 ```
 
-SQLiteがデータベースを更新できるよう、所有者に読み書き権限を付与します。
+ローカルデバッグはAnaconda用ターミナルで実行します。
 
 ```sh
-chmod 600 recruitment.db
+cd ~/public_html/dm_app
+flask --debug run
 ```
 
-`.htaccess` は学内ネットワークからのアクセスだけを許可し、DB・SQLファイルへの直接アクセスを拒否します。
-
-```apache
-<FilesMatch "\.(db|sql)$">
-    Require all denied
-</FilesMatch>
-```
-
-配置後は公開URLから、一覧表示、登録、更新、削除、検索を確認します。
+配置後は `setup.sh` が表示した公開URLから、一覧表示、登録、更新、削除、検索を確認します。
 
 ## 主な機能
 
