@@ -95,6 +95,20 @@ class RecruitmentAppTest(unittest.TestCase):
         self.assertEqual(self.client.post("/candidates/new", data={}).status_code, 400)
         self.assertEqual(self.client.get("/candidates/99999").status_code, 404)
 
+        response = self.client.get("/applications/3/interviews/new", follow_redirects=True)
+        self.assertIn("選考が終了している応募には面接を登録できません".encode(), response.data)
+
+        response = self.client.post("/applications/1/edit", data={
+            "csrf_token": self.csrf_token(), "position_id": "1",
+            "application_date": "2026-06-01", "recruitment_year": "2026",
+            "current_stage_id": "4", "next_interview_date": "2026-08-01T10:00",
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        with closing(sqlite3.connect(self.database)) as db:
+            self.assertIsNone(db.execute(
+                "SELECT next_interview_date FROM applications WHERE application_id=1"
+            ).fetchone()[0])
+
 
 if __name__ == "__main__":
     unittest.main()
