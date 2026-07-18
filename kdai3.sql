@@ -2,6 +2,10 @@ CREATE TABLE selection_stages (
     stage_id INTEGER PRIMARY KEY,
     stage_name TEXT NOT NULL
 );
+CREATE TABLE app_settings (
+    setting_key TEXT PRIMARY KEY,
+    setting_value TEXT NOT NULL
+);
 CREATE TABLE candidates (
     candidate_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
