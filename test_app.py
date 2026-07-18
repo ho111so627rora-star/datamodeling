@@ -19,6 +19,11 @@ class RecruitmentAppTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
 
+    def csrf_token(self):
+        self.client.get("/")
+        with self.client.session_transaction() as session:
+            return session["csrf_token"]
+
     def test_pages_and_crud_flow(self):
         for path in ("/", "/candidates", "/candidates/1", "/candidates/new",
                      "/candidates/1/applications/new", "/applications/1/edit",
@@ -26,6 +31,7 @@ class RecruitmentAppTest(unittest.TestCase):
             self.assertEqual(self.client.get(path).status_code, 200, path)
 
         response = self.client.post("/candidates/new", data={
+            "csrf_token": self.csrf_token(),
             "name": "テスト候補者", "email": "test@example.com", "phone": "",
             "university": "テスト大学", "faculty": "情報学部",
             "graduation_year": "2028", "available_hours_per_week": "20",
@@ -39,6 +45,7 @@ class RecruitmentAppTest(unittest.TestCase):
             ).fetchone()[0]
 
         response = self.client.post(f"/candidates/{candidate_id}/applications/new", data={
+            "csrf_token": self.csrf_token(),
             "position_id": "1", "application_date": "2027-06-01",
             "recruitment_year": "2027", "current_stage_id": "0",
             "next_interview_date": "2027-06-20T10:00",
@@ -52,6 +59,7 @@ class RecruitmentAppTest(unittest.TestCase):
             ).fetchone()[0]
 
         response = self.client.post(f"/applications/{application_id}/interviews/new", data={
+            "csrf_token": self.csrf_token(),
             "stage_id": "1", "recruiter_id": "1",
             "interview_date": "2027-06-20T10:00", "result": "通過",
             "technical_score": "4", "communication_score": "5",
@@ -60,8 +68,14 @@ class RecruitmentAppTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("テスト評価".encode(), response.data)
 
+        with closing(sqlite3.connect(self.database)) as db:
+            self.assertEqual(db.execute(
+                "SELECT current_stage_id FROM applications WHERE application_id=?", (application_id,)
+            ).fetchone()[0], 2)
+
         response = self.client.post(
-            f"/applications/{application_id}/delete", follow_redirects=True
+            f"/applications/{application_id}/delete",
+            data={"csrf_token": self.csrf_token()}, follow_redirects=True
         )
         self.assertEqual(response.status_code, 200)
         with closing(sqlite3.connect(self.database)) as db:
@@ -69,9 +83,16 @@ class RecruitmentAppTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM applications WHERE application_id=?", (application_id,)
             ).fetchone()[0], 0)
 
-    def test_validation_and_not_found(self):
-        response = self.client.post("/candidates/new", data={"name": "", "email": ""})
+    def test_validation_security_and_not_found(self):
+        response = self.client.post("/candidates/new", data={
+            "csrf_token": self.csrf_token(), "name": "", "email": ""
+        })
         self.assertIn("氏名は必須です".encode(), response.data)
+        response = self.client.post("/candidates/new", data={
+            "csrf_token": self.csrf_token(), "name": "不正メール", "email": "invalid"
+        })
+        self.assertIn("メールアドレスの形式が正しくありません".encode(), response.data)
+        self.assertEqual(self.client.post("/candidates/new", data={}).status_code, 400)
         self.assertEqual(self.client.get("/candidates/99999").status_code, 404)
 
 
