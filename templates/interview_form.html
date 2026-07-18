@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}面接・評価登録{% endblock %}
 {% block content %}<div class="narrow"><div class="page-head"><div><p class="eyebrow">INTERVIEW & EVALUATION</p><h1>面接・評価を登録</h1><p>{{ application.name }} ・ {{ application.position_name }} ・ {{ application.recruitment_year }}年度</p></div></div>
-<form class="panel form" method="post"><div class="form-grid">
+<form class="panel form" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><div class="form-grid">
   <label>面接ステージ <em>必須</em><select required name="stage_id"><option value="">選択してください</option>{% for s in options.stages if s.stage_id in [1,2,3] %}<option value="{{ s.stage_id }}" {% if request.form.get('stage_id')|string == s.stage_id|string %}selected{% endif %}>{{ s.stage_name }}</option>{% endfor %}</select></label>
   <label>面接担当者 <em>必須</em><select required name="recruiter_id"><option value="">選択してください</option>{% for r in options.recruiters %}<option value="{{ r.recruiter_id }}" {% if request.form.get('recruiter_id')|string == r.recruiter_id|string %}selected{% endif %}>{{ r.name }}（{{ r.department }}）</option>{% endfor %}</select></label>
   <label>面接日時 <em>必須</em><input required type="datetime-local" name="interview_date" value="{{ request.form.get('interview_date','') }}"></label><label>結果 <em>必須</em><select required name="result"><option value="">選択してください</option>{% for value in ['通過','不合格','保留','辞退'] %}<option {% if request.form.get('result') == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
