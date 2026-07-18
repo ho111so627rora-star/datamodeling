@@ -145,13 +145,13 @@ INSERT INTO applications
 (candidate_id, position_id, application_date, recruitment_year,
  current_stage_id, next_interview_date)
 VALUES
-(1,1,'2026-06-01',2026,1,'2026-07-01');
+(1,1,'2026-06-01',2026,1,'2026-07-22 10:00:00');
 
 INSERT INTO applications
 (candidate_id, position_id, application_date, recruitment_year,
  current_stage_id, next_interview_date)
 VALUES
-(2,4,'2026-06-03',2026,2,'2026-07-05');
+(2,4,'2026-06-03',2026,2,'2026-07-26 15:00:00');
 
 INSERT INTO applications
 (candidate_id, position_id, application_date, recruitment_year,
@@ -163,7 +163,7 @@ INSERT INTO applications
 (candidate_id, position_id, application_date, recruitment_year,
  current_stage_id, next_interview_date)
 VALUES
-(4,2,'2026-06-08',2026,0,'2026-06-28');
+(4,2,'2026-06-08',2026,0,'2026-07-20 13:00:00');
 
 INSERT INTO applications
 (candidate_id, position_id, application_date, recruitment_year,
@@ -181,7 +181,7 @@ INSERT INTO applications
 (candidate_id, position_id, application_date, recruitment_year,
  current_stage_id, next_interview_date)
 VALUES
-(7,2,'2026-06-15',2026,0,'2026-07-03');
+(7,2,'2026-06-15',2026,0,'2026-07-24 11:00:00');
 -- =====================================
 -- Interviews
 -- =====================================
