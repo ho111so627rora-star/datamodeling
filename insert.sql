@@ -182,6 +182,13 @@ INSERT INTO applications
  current_stage_id, next_interview_date)
 VALUES
 (7,2,'2026-06-15',2026,0,'2026-07-24 11:00:00');
+
+-- 山田太郎の翌年度における同一職種への再応募
+INSERT INTO applications
+(candidate_id, position_id, application_date, recruitment_year,
+ current_stage_id, next_interview_date)
+VALUES
+(1,1,'2027-06-01',2027,0,'2027-06-20 10:00:00');
 -- =====================================
 -- Interviews
 -- =====================================
