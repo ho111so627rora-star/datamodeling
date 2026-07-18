@@ -1,4 +1,11 @@
 -- =====================================
+-- Application Settings
+-- =====================================
+
+INSERT INTO app_settings(setting_key, setting_value)
+VALUES ('secret_key', lower(hex(randomblob(32))));
+
+-- =====================================
 -- SelectionStage
 -- =====================================
 
